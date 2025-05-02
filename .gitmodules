@@ -1,0 +1,3 @@
+[submodule "netlib"]
+	path = netlib
+	url = https://github.com/Lluna4/netlib
