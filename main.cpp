@@ -1,5 +1,7 @@
 #include "netlib/src/netlib.h"
+#ifdef __linux__
 #include <sys/sendfile.h>
+#endif
 #include <print>
 #include <fstream>
 
@@ -14,6 +16,20 @@ int atoi_newline(const char *data)
         if (*data == '\n' || *data == '\0' || *data == '\r')
             break;
         ret *= 10;
+    }
+    return ret;
+}
+
+std::string get_filename(std::string_view data)
+{
+    int index = 1;
+    std::string ret;
+    while (true)
+    {
+        if (data[index] == '"')
+            break;
+        ret.push_back(data[index]);
+        index++;
     }
     return ret;
 }
@@ -53,7 +69,12 @@ int main()
                         size = file.tellg() - size;
                         file.close();
                         int filefd = open("../test.html", O_RDONLY);
+                        #ifdef __linux__
                         sendfile(user, filefd, 0, size);
+                        #endif
+                        #ifdef __APPLE__
+                        sendfile(filefd, user, 0, (long long*)&size, nullptr, 0);
+                        #endif
                     }
                     server.disconnect_user(user);
                 }
@@ -64,10 +85,18 @@ int main()
                     dat.remove_prefix(strlen("Content-Length: "));
                     int lenght = atoi_newline(dat.data());
                     std::println("{} {}", dat, lenght);
-                    pos = dat.find("image/png");
+                    pos = dat.find("filename=");
                     dat.remove_prefix(pos);
-                    dat.remove_prefix(strlen("image/png\r\n") + 2);
-                    std::ofstream a("Test.png", std::ios::binary);
+                    dat.remove_prefix(strlen("filename="));
+                    std::string_view file_data(data);
+                    std::string filename = get_filename(dat);
+                    std::println("Filename {}", filename);
+                    dat.remove_prefix(dat.find("\r\n\r\n"));
+                    dat.remove_prefix(dat.find("\r\n\r\n"));
+                    dat.remove_prefix(4);
+                    std::println("{}", dat);
+                    
+                    std::ofstream a(filename, std::ios::binary);
                     a.write(dat.data(), lenght);
                     netlib::send_packet(std::make_tuple(std::string("HTTP/1.1 201 CREATED")), user);
                     server.disconnect_user(user);
