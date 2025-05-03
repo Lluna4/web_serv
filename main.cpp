@@ -41,7 +41,8 @@ int main()
 
     while (true)
     {
-        std::vector<int> readable = server.get_readable();
+        std::vector<int> readable = server.wait_readable();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
         for (auto user: readable)
         {
             char *data = server.receive_everything(user);
@@ -86,6 +87,8 @@ int main()
                     int lenght = atoi_newline(dat.data());
                     std::println("{} {}", dat, lenght);
                     pos = dat.find("filename=");
+                    if (pos == std::string_view::npos)
+                        continue;
                     dat.remove_prefix(pos);
                     dat.remove_prefix(strlen("filename="));
                     std::string_view file_data(data);
@@ -103,6 +106,5 @@ int main()
                 }
             }
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 }
