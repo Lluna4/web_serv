@@ -42,10 +42,11 @@ int main()
     while (true)
     {
         std::vector<int> readable = server.wait_readable();
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(50));
         for (auto user: readable)
         {
-            char *data = server.receive_everything(user);
+            auto data_result = server.receive_everything(user);
+            char *data = data_result.first;
             if (data)
             {
                 std::string_view dat(data);
@@ -86,8 +87,21 @@ int main()
                     dat.remove_prefix(strlen("Content-Length: "));
                     int lenght = atoi_newline(dat.data());
                     std::println("{} {}", dat, lenght);
+                    if (lenght > data_result.second)
+                    {
+                        std::println("set a target");
+                        server.set_target(lenght - data_result.second);
+                        server.wait_readable();
+                        auto data_res = server.receive_everything(user);
+                        char *buffer = data_res.first;
+                        data = (char *)realloc(data, lenght + 1000);
+                        memcpy(&data[data_result.second], buffer, lenght + 1000);
+                        if (!data)
+                            throw std::runtime_error("Memory allocation failed");
+                        dat = std::string_view(data);
+                    }
                     pos = dat.find("filename=");
-                    if (pos == std::string_view::npos)
+                    if (pos == dat.npos)
                         continue;
                     dat.remove_prefix(pos);
                     dat.remove_prefix(strlen("filename="));
@@ -101,9 +115,10 @@ int main()
                     
                     std::ofstream a(filename, std::ios::binary);
                     a.write(dat.data(), lenght);
-                    netlib::send_packet(std::make_tuple(std::string("HTTP/1.1 201 CREATED")), user);
+                    netlib::send_packet(std::make_tuple(std::string("HTTP/1.1 200 OK")), user);
                     server.disconnect_user(user);
                 }
+                free(data);
             }
         }
     }
