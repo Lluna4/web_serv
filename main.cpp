@@ -36,7 +36,7 @@ std::string get_filename(std::string_view data)
 
 int main()
 {
-    netlib::server_raw server;
+    netlib::server_raw server(true, 100);
     server.open_server("0.0.0.0", 8080);
 
     while (true)
@@ -90,7 +90,7 @@ int main()
                     if (lenght > data_result.second)
                     {
                         std::println("set a target");
-                        server.set_target(lenght - data_result.second);
+                        server.set_target(user ,lenght - data_result.second);
                         server.wait_readable();
                         auto data_res = server.receive_everything(user);
                         char *buffer = data_res.first;
@@ -120,6 +120,7 @@ int main()
                 }
                 free(data);
             }
+            
         }
     }
 }
