@@ -36,7 +36,7 @@ std::string get_filename(std::string_view data)
 
 int main()
 {
-    netlib::server_raw server(true, 100);
+    netlib::server_raw server(false, 0);
     server.open_server("0.0.0.0", 8080);
 
     while (true)
@@ -45,8 +45,7 @@ int main()
         //std::this_thread::sleep_for(std::chrono::milliseconds(50));
         for (auto user: readable)
         {
-            auto data_result = server.receive_everything(user);
-            char *data = data_result.first;
+            char *data = server.receive_data_ensured(user, 3000);
             if (data)
             {
                 std::string_view dat(data);
@@ -62,7 +61,7 @@ int main()
                     }
                     dat.remove_suffix(dat.size() - ins_size);
                     std::println("{}", dat);
-                    if (dat.compare("/") == 0)
+                    if (dat == "/")
                     {
                         netlib::send_packet(std::make_tuple(std::string("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n")), user);
                         std::ifstream file("../test.html",std::ios::binary);
@@ -87,22 +86,10 @@ int main()
                     dat.remove_prefix(strlen("Content-Length: "));
                     int lenght = atoi_newline(dat.data());
                     std::println("{} {}", dat, lenght);
-                    if (lenght > data_result.second)
-                    {
-                        std::println("set a target");
-                        server.set_target(user ,lenght - data_result.second);
-                        server.wait_readable();
-                        auto data_res = server.receive_everything(user);
-                        char *buffer = data_res.first;
-                        data = (char *)realloc(data, lenght + 1000);
-                        memcpy(&data[data_result.second], buffer, lenght + 1000);
-                        if (!data)
-                            throw std::runtime_error("Memory allocation failed");
-                        dat = std::string_view(data);
-                    }
+
                     pos = dat.find("filename=");
                     if (pos == dat.npos)
-                        continue;
+
                     dat.remove_prefix(pos);
                     dat.remove_prefix(strlen("filename="));
                     std::string_view file_data(data);
@@ -112,7 +99,19 @@ int main()
                     dat.remove_prefix(dat.find("\r\n\r\n"));
                     dat.remove_prefix(4);
                     std::println("{}", dat);
-                    
+                    if (lenght > 1000)
+                    {
+                        std::println("set a target");
+                        server.set_target(user , lenght - (dat.data() - data));
+                        server.wait_readable();
+                        auto data_res = server.receive_everything(user);
+                        char *buffer = data_res.first;
+                        data = (char *)realloc(data, lenght + 1000);
+                        if (!data)
+                            throw std::runtime_error("Memory allocation failed");
+                        memcpy(data, buffer, lenght + 1000);
+                        dat = std::string_view(data);
+                    }
                     std::ofstream a(filename, std::ios::binary);
                     a.write(dat.data(), lenght);
                     netlib::send_packet(std::make_tuple(std::string("HTTP/1.1 200 OK")), user);
