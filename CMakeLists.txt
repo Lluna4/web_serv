@@ -4,7 +4,8 @@ set(CMAKE_CXX_STANDARD 23)
 
 add_subdirectory(netlib)
 
-add_executable(web_serv main.cpp)
+add_executable(web_serv main.cpp
+)
 
 target_link_libraries(web_serv PRIVATE netlib)
 
