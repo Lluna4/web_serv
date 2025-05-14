@@ -126,6 +126,22 @@ std::map<std::string, std::string> parse_headers(const std::vector<std::string> 
     return ret;
 }
 
+std::string get_filename(std::string data)
+{
+    bool started_quote = false;
+    std::string ret;
+    for (auto x: data)
+    {
+        if (x == '"' && !started_quote)
+            started_quote = true;
+        else if (x == '"' && started_quote)
+            break;
+        else if (started_quote)
+            ret.push_back(x);
+    }
+    return ret;
+}
+
 int main()
 {
     netlib::server_raw server(false, 0);
@@ -182,14 +198,14 @@ int main()
                                     print_map(h);
                                     std::vector<std::string> a = split(h["Content-Type:"], "; ");
                                     boundary = a[1];
-                                    boundary.substr(strlen("boundary="), boundary.size() - strlen("boundary=") - 2);
+                                    boundary = boundary.substr(strlen("boundary="), boundary.size() - strlen("boundary=") - 2);
                                     std::println("{}", boundary);
                                 }
-                                if (h.contains("Content-Length:"))
+                                else if (h.contains("Content-Length:"))
                                 {
                                     file_size = atoi(h["Content-Length:"].c_str());
                                 }
-                                if (line_str.contains(boundary) && boundary.contains("----"))
+                                else if (line_str.contains(boundary) && boundary.contains("----"))
                                 {
                                     state = 1;
                                     std::println("Changed state");
@@ -197,11 +213,27 @@ int main()
                             }
                             if (state == 1)
                             {
-                                char *file_data = server.receive_data_ensured(user, file_size);
-                                if (file_data)
+                                char *line = server.get_line(user);
+                                char *line2 = server.get_line(user);
+                                char *line3 = server.get_line(user);
+                                if (line && line2)
                                 {
-                                    std::println("{}", file_data);
+                                    std::string line_str = std::string(line);
+                                    auto h = parse_header(line_str);
+                                    std::vector<std::string> file_ = split(h.begin()->second, "; ");
+                                    std::string filename = get_filename(file_.back());
+                                    size_t size = file_size - line_str.size() - std::string(line2).size() - std::string(line3).size();
+                                    char *file_data = server.receive_data_ensured(user, size);
+                                    std::ofstream a(filename, std::ios::binary);
+                                    a.write(file_data, size);
+                                    print_map(h);
+                                    free(file_data);
+                                    std::println("File {} received with {}B size", filename, size);
                                 }
+                                free(line);
+                                free(line2);
+                                free(line3);
+                                break;
                             }
                         }
                         else
