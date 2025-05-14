@@ -164,14 +164,45 @@ int main()
                 }
                 else if (head[0] == "POST")
                 {
+                    int state = 0;
+                    std::string boundary;
+                    size_t file_size = 0;
                     while (true)
                     {
                         char *line = server.get_line(user);
                         if (line)
                         {
-                            std::string str = std::string(line);
-                            auto head = parse_header(str);
-                            print_map(head);
+                            if (state == 0)
+                            {
+                                std::string line_str = std::string(line);
+                                auto h = parse_header(line_str);
+
+                                if (h.contains("Content-Type:"))
+                                {
+                                    print_map(h);
+                                    std::vector<std::string> a = split(h["Content-Type:"], "; ");
+                                    boundary = a[1];
+                                    boundary.substr(strlen("boundary="), boundary.size() - strlen("boundary=") - 2);
+                                    std::println("{}", boundary);
+                                }
+                                if (h.contains("Content-Length:"))
+                                {
+                                    file_size = atoi(h["Content-Length:"].c_str());
+                                }
+                                if (line_str.contains(boundary) && boundary.contains("----"))
+                                {
+                                    state = 1;
+                                    std::println("Changed state");
+                                }
+                            }
+                            if (state == 1)
+                            {
+                                char *file_data = server.receive_data_ensured(user, file_size);
+                                if (file_data)
+                                {
+                                    std::println("{}", file_data);
+                                }
+                            }
                         }
                         else
                             break;
