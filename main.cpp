@@ -142,7 +142,36 @@ std::string get_filename(std::string data)
     return ret;
 }
 
+void write_file(const std::string& filename, char *start_data, char *end_data)
+{
+    FILE *fd = fopen(filename.c_str(), "wb");
+    while (start_data != end_data)
+    {
+        fwrite(start_data, sizeof(char), 1, fd);
+        start_data++;
+    }
+    fclose(fd);
+}
 
+char *search_substring(char *start_data, const char *substring, size_t size)
+{
+    size_t index = 0;
+    size_t index_sub = 0;
+
+    while (index < size)
+    {
+        if (start_data[index] == substring[index_sub])
+        {
+            index_sub++;
+            if (index_sub >= strlen(substring))
+                return start_data + (index - index_sub);
+        }
+        else
+            index_sub = 0;
+        index++;
+    }
+    return NULL;
+}
 
 int main()
 {
@@ -225,15 +254,26 @@ int main()
                                     auto h = parse_header(line_str);
                                     std::vector<std::string> file_ = split(h.begin()->second, "; ");
                                     std::string filename = get_filename(file_.back());
-                                    size_t size = file_size - (line_str.size() + std::string(line2).size() + std::string(line3).size() + (line_str2.size() * 2) + 4);
-                                    char *file_data = server.receive_data_ensured(user, size);
-                                    std::ofstream a(filename, std::ios::binary);
-                                    a.write(file_data, size);
-                                    a.close();
+                                    char *file_data = server.receive_data_ensured(user, file_size);
+                                    if (!file_data)
+                                        throw std::runtime_error("Getting file data failed");
+                                    std::string final_boundary = std::format("\r\n--{}--", boundary);
+                                    char *end = search_substring(file_data, final_boundary.c_str(), file_size);
+                                    if (!end)
+                                    {
+                                        std::println("Couldn't find ending for the file");
+                                        free(line);
+                                        free(line1);
+                                        free(line2);
+                                        free(line3);
+                                        break;
+                                    }
+                                    write_file(filename, file_data, end);
                                     print_map(h);
                                     free(file_data);
-                                    std::println("File {} received with {}B size", filename, size);
+                                    std::println("File {} received", filename);
                                 }
+                                free(line);
                                 free(line1);
                                 free(line2);
                                 free(line3);
