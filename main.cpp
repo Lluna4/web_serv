@@ -142,6 +142,8 @@ std::string get_filename(std::string data)
     return ret;
 }
 
+
+
 int main()
 {
     netlib::server_raw server(false, 0);
@@ -213,24 +215,26 @@ int main()
                             }
                             if (state == 1)
                             {
-                                char *line = server.get_line(user);
+                                char *line1 = server.get_line(user);
                                 char *line2 = server.get_line(user);
                                 char *line3 = server.get_line(user);
-                                if (line && line2)
+                                if (line1 && line2)
                                 {
-                                    std::string line_str = std::string(line);
+                                    std::string line_str = std::string(line1);
+                                    std::string line_str2 = std::string(line);
                                     auto h = parse_header(line_str);
                                     std::vector<std::string> file_ = split(h.begin()->second, "; ");
                                     std::string filename = get_filename(file_.back());
-                                    size_t size = file_size - line_str.size() - std::string(line2).size() - std::string(line3).size();
+                                    size_t size = file_size - (line_str.size() + std::string(line2).size() + std::string(line3).size() + (line_str2.size() * 2) + 4);
                                     char *file_data = server.receive_data_ensured(user, size);
                                     std::ofstream a(filename, std::ios::binary);
                                     a.write(file_data, size);
+                                    a.close();
                                     print_map(h);
                                     free(file_data);
                                     std::println("File {} received with {}B size", filename, size);
                                 }
-                                free(line);
+                                free(line1);
                                 free(line2);
                                 free(line3);
                                 break;
