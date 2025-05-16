@@ -234,7 +234,7 @@ int main()
                                 }
                                 else if (h.contains("Content-Length:"))
                                 {
-                                    file_size = atoi(h["Content-Length:"].c_str());
+                                    file_size = atoi_newline(h["Content-Length:"].c_str());
                                 }
                                 else if (line_str.contains(boundary) && boundary.contains("----"))
                                 {
@@ -254,7 +254,8 @@ int main()
                                     auto h = parse_header(line_str);
                                     std::vector<std::string> file_ = split(h.begin()->second, "; ");
                                     std::string filename = get_filename(file_.back());
-                                    char *file_data = server.receive_data_ensured(user, file_size);
+                                    size_t size = file_size - (line_str.size() + std::string(line2).size() + std::string(line3).size() + (line_str2.size()));
+                                    char *file_data = server.receive_data_ensured(user, size);
                                     if (!file_data)
                                         throw std::runtime_error("Getting file data failed");
                                     std::string final_boundary = std::format("\r\n--{}--", boundary);
