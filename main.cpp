@@ -144,12 +144,20 @@ std::string get_filename(std::string data)
 
 void write_file(const std::string& filename, char *start_data, char *end_data)
 {
-    FILE *fd = fopen(filename.c_str(), "wb");
+    FILE *fd = fopen(filename.c_str(), "ab");
     while (start_data != end_data)
     {
         fwrite(start_data, sizeof(char), 1, fd);
         start_data++;
     }
+    fclose(fd);
+}
+
+void write_file_size(const std::string& filename, char *start_data, size_t size)
+{
+    FILE *fd = fopen(filename.c_str(), "ab");
+    int index = 0;
+    fwrite(start_data, sizeof(char), size, fd);
     fclose(fd);
 }
 
@@ -251,28 +259,34 @@ int main()
                                 {
                                     std::string line_str = std::string(line1);
                                     std::string line_str2 = std::string(line);
+                                    std::string line_str3 = std::string(line2);
+                                    std::string line_str4 = std::string(line3);
                                     auto h = parse_header(line_str);
                                     std::vector<std::string> file_ = split(h.begin()->second, "; ");
                                     std::string filename = get_filename(file_.back());
-                                    size_t size = file_size - (line_str.size() + std::string(line2).size() + std::string(line3).size() + (line_str2.size()));
-                                    char *file_data = server.receive_data_ensured(user, size);
-                                    if (!file_data)
-                                        throw std::runtime_error("Getting file data failed");
-                                    std::string final_boundary = std::format("\r\n--{}--", boundary);
-                                    char *end = search_substring(file_data, final_boundary.c_str(), file_size);
-                                    if (!end)
+                                    int size_to_get = line_str.size() + line_str2.size() + line_str3.size() + line_str4.size();
+                                    size_to_get = file_size - size_to_get;
+                                    int chunks_to_get = (size_to_get / 2048) + 1;
+                                    int last_chunk_size = size_to_get % 2048;
+                                    while (chunks_to_get > 0)
                                     {
-                                        std::println("Couldn't find ending for the file");
-                                        free(line);
-                                        free(line1);
-                                        free(line2);
-                                        free(line3);
-                                        break;
+                                        if (chunks_to_get == 1)
+                                        {
+                                            char *chunk = server.receive_data_ensured(user, last_chunk_size);
+                                            std::string final_boundary = std::format("\r\n--{}--", boundary);
+                                            char *end = search_substring(chunk, final_boundary.c_str(), file_size);
+                                            write_file(filename, chunk, end);
+                                            free(chunk);
+                                        }
+                                        else
+                                        {
+                                            char *chunk = server.receive_data_ensured(user, 2048);
+                                            write_file_size(filename, chunk, 2048);
+                                            free(chunk);
+                                        }
+                                        chunks_to_get--;
+                                        std::println("Chunks left: {}", chunks_to_get);
                                     }
-                                    write_file(filename, file_data, end);
-                                    print_map(h);
-                                    free(file_data);
-                                    std::println("File {} received", filename);
                                 }
                                 free(line);
                                 free(line1);
