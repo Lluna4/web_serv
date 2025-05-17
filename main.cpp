@@ -183,7 +183,7 @@ char *search_substring(char *start_data, const char *substring, size_t size)
 
 int main()
 {
-    netlib::server_raw server(false, 0);
+    netlib::server_raw server(150000000);
     server.open_server("0.0.0.0", 8080);
 
     while (true)
