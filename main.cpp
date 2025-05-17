@@ -126,6 +126,16 @@ std::map<std::string, std::string> parse_headers(const std::vector<std::string> 
     return ret;
 }
 
+std::string filename_sanitation(std::string filename)
+{
+    std::filesystem::path p(filename);
+    std::string ret = p.filename().string();
+    if (ret == "" || ret == "." || ret == "..")
+        return "generic_file.txt";
+
+    return ret;
+}
+
 std::string get_filename(std::string data)
 {
     bool started_quote = false;
@@ -139,6 +149,7 @@ std::string get_filename(std::string data)
         else if (started_quote)
             ret.push_back(x);
     }
+    ret = filename_sanitation(ret);
     return ret;
 }
 
@@ -180,6 +191,8 @@ char *search_substring(char *start_data, const char *substring, size_t size)
     }
     return NULL;
 }
+
+
 
 int main()
 {
@@ -243,6 +256,8 @@ int main()
                                 else if (h.contains("Content-Length:"))
                                 {
                                     file_size = atoi_newline(h["Content-Length:"].c_str());
+                                    if (file_size > 1000000000) //1GB
+                                        server.disconnect_user(user);
                                 }
                                 else if (line_str.contains(boundary) && boundary.contains("----"))
                                 {
