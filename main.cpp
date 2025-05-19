@@ -196,13 +196,13 @@ char *search_substring(char *start_data, const char *substring, size_t size)
 
 int main()
 {
-    netlib::server_raw server(150000000);
+    netlib::server_raw server(15000000);
     server.open_server("0.0.0.0", 8080);
 
     while (true)
     {
         std::vector<int> readable = server.wait_readable();
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(50));
         for (auto user: readable)
         {
             char * data = server.get_line(user);
@@ -281,8 +281,8 @@ int main()
                                     std::string filename = get_filename(file_.back());
                                     int size_to_get = line_str.size() + line_str2.size() + line_str3.size() + line_str4.size();
                                     size_to_get = file_size - size_to_get;
-                                    int chunks_to_get = (size_to_get / 2048) + 1;
-                                    int last_chunk_size = size_to_get % 2048;
+                                    int chunks_to_get = (size_to_get / 8198) + 1;
+                                    int last_chunk_size = size_to_get % 8198;
                                     while (chunks_to_get > 0)
                                     {
                                         if (chunks_to_get == 1)
@@ -295,8 +295,8 @@ int main()
                                         }
                                         else
                                         {
-                                            char *chunk = server.receive_data_ensured(user, 2048);
-                                            write_file_size(filename, chunk, 2048);
+                                            char *chunk = server.receive_data_ensured(user, 8198);
+                                            write_file_size(filename, chunk, 8198);
                                             free(chunk);
                                         }
                                         chunks_to_get--;
