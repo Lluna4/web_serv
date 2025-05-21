@@ -242,6 +242,7 @@ int main()
     netlib::server_raw server(15000000);
     server.open_server("0.0.0.0", 8080);
     std::vector<std::string> whitelist = load_whitelist("whitelist.txt");
+    server.add_whitelist(whitelist);
     std::println("{} ips found in whitelist", whitelist.size());
     while (true)
     {
@@ -249,22 +250,6 @@ int main()
         //std::this_thread::sleep_for(std::chrono::milliseconds(50));
         for (auto user: readable)
         {
-            sockaddr_in addr = {0};
-            unsigned int addr_size = sizeof(addr);
-            char str[INET_ADDRSTRLEN];
-            getpeername(user, (struct sockaddr *)&addr, &addr_size);
-            strcpy(str, inet_ntoa(addr.sin_addr));
-            bool in_whitelist = false;
-            for (const auto& x: whitelist)
-            {
-                if (x == str)
-                    in_whitelist = true;
-            }
-            if (in_whitelist == false)
-            {
-                std::println("Ip {} not in whitelist!", str);
-                server.disconnect_user(user);
-            }
             char * data = server.get_line(user);
             if (data)
             {
