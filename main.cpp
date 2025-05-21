@@ -192,19 +192,79 @@ char *search_substring(char *start_data, const char *substring, size_t size)
     return NULL;
 }
 
+bool isNumber(std::string a)
+{
+    if (a.empty())
+        return false;
+    for (int i = 0; i < a.length(); i++)
+    {
+        if (isdigit(a[i]) == 0)
+            return false;
+    }
+    return true;
+}
 
+bool check_ip(const char* ip)
+{
+    std::string buff;
+    std::vector<std::string> tokens;
+    if (strcmp(ip, "localhost") == 0)
+        return true;
+    buff = ip;
+    tokens = split(ip, ".");
+    if (tokens.size() != 4)
+        return false;
+    for (int i = 0; i < tokens.size(); i++)
+    {
+        if (isNumber(tokens[i]) == false)
+            return false;
+        else if (atoi(tokens[i].c_str()) > 255)
+            return false;
+    }
+    return true;
+}
+
+std::vector<std::string> load_whitelist(const std::string &filename)
+{
+    std::vector<std::string> ret;
+    std::ifstream file(filename);
+    std::string line;
+    while (std::getline(file, line))
+    {
+        if (check_ip(line.c_str()))
+            ret.push_back(line);
+    }
+    return ret;
+}
 
 int main()
 {
     netlib::server_raw server(15000000);
     server.open_server("0.0.0.0", 8080);
-
+    std::vector<std::string> whitelist = load_whitelist("whitelist.txt");
+    std::println("{} ips found in whitelist", whitelist.size());
     while (true)
     {
         std::vector<int> readable = server.wait_readable();
         //std::this_thread::sleep_for(std::chrono::milliseconds(50));
         for (auto user: readable)
         {
+            sockaddr_in addr = {0};
+            unsigned int addr_size = sizeof(addr);
+            char str[INET_ADDRSTRLEN];
+            getpeername(user, (struct sockaddr *)&addr, &addr_size);
+            strcpy(str, inet_ntoa(addr.sin_addr));
+            bool in_whitelist = false;
+            for (const auto& x: whitelist)
+            {
+                if (x == str)
+                    in_whitelist = true;
+            }
+            if (in_whitelist == false)
+            {
+                std::println("Ip {} not in whitelist!", str);
+                server.disconnect_user(user);
+            }
             char * data = server.get_line(user);
             if (data)
             {
