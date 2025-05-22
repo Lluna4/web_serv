@@ -1,177 +1,90 @@
-//THIS IS NOT MY CODE, THIS IS AN AI GENERATED CODE TO TEST MY SERVER AND SEE HOW EVERYTHING WORKS
-//I WILL CHANGE IT TO MY OWN WHEN MY SERVER WORKS PROPERLY
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drag and Drop File Upload</title>
+    <title>Sube musica</title>
     <style>
-        #drop_zone {
-            border: 5px dashed blue; /* Dashed looks more like a typical drop zone */
-            width: 300px;
-            height: 150px;
-            padding: 20px;
+        #drop_zone 
+        {
+            width: 600px;
+            height: 500px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             text-align: center;
-            font-family: sans-serif;
-            line-height: 1.5;
-            transition: border-color 0.3s, background-color 0.3s; /* Add smooth transition */
-        }
-        #drop_zone.dragover { /* Style when dragging over */
-             border-color: green;
-             background-color: #e0ffe0;
-        }
-        #status {
-            margin-top: 15px;
-            font-family: sans-serif;
-            font-weight: bold;
+            color: #777;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            background-color: #fff;
+            transition: background-color 0.3s, border-color 0.3s;
         }
     </style>
 </head>
 <body>
 
-<h1>Simple File Upload via Drag & Drop</h1>
-
 <div
   id="drop_zone"
   ondrop="dropHandler(event);"
   ondragover="dragOverHandler(event);"
-  ondragenter="dragEnterHandler(event);" /* Optional: visual feedback on enter */
-  ondragleave="dragLeaveHandler(event);" /* Optional: visual feedback on leave */
+  ondragenter="dragEnterHandler(event);"
   >
-  <p>Drag one or more files to this <i>drop zone</i>.</p>
 </div>
-
-<div id="status"></div> <!-- To display upload status -->
 
 <script>
     const dropZone = document.getElementById('drop_zone');
-    const statusDiv = document.getElementById('status');
 
-    function dropHandler(ev) {
-        console.log("File(s) dropped");
-        statusDiv.textContent = 'Processing dropped file(s)...';
-        dropZone.classList.remove('dragover'); // Remove highlight style
-
-        // Prevent default behavior (Prevent file from being opened)
+    function dropHandler(ev) 
+    {
         ev.preventDefault();
 
-        let filesToUpload = []; // Store files to potentially upload
+        let file_to_upload;
 
         if (ev.dataTransfer.items) {
-            // Use DataTransferItemList interface to access the file(s)
-            [...ev.dataTransfer.items].forEach((item, i) => {
-                // If dropped items aren't files, reject them
-                if (item.kind === "file") {
-                    const file = item.getAsFile();
-                    if (file) { // Check if getAsFile() returned a file
-                        console.log(`… file[${i}].name = ${file.name}`);
-                        filesToUpload.push(file); // Add file to our list
-                    } else {
-                        console.log(`… item[${i}] is a file but couldn't be accessed (perhaps a directory?).`);
-                    }
-                } else {
-                     console.log(`… item[${i}].kind = ${item.kind} (not a file)`);
-                }
+            [...ev.dataTransfer.items].forEach((item, i) =>
+            {
+                if (item.kind === "file")
+                    file_to_upload = item.getAsFile();
             });
-        } else {
-            // Use DataTransfer interface to access the file(s)
-            [...ev.dataTransfer.files].forEach((file, i) => {
-                console.log(`… file[${i}].name = ${file.name}`);
-                filesToUpload.push(file); // Add file to our list
+
+        } 
+        else 
+        {
+
+            [...ev.dataTransfer.files].forEach((file, i) => 
+            {
+                file_to_upload = file;
             });
         }
 
-        // --- UPLOAD THE FILE(S) ---
-        if (filesToUpload.length > 0) {
-             statusDiv.textContent = `Found ${filesToUpload.length} file(s). Uploading...`;
-            // Example: Uploading the first file found
-            // uploadFile(filesToUpload[0]);
-
-            // OR: Upload ALL dropped files sequentially
-            // (You might want more advanced logic for parallel uploads or progress bars)
-            filesToUpload.forEach(uploadFile);
-
-        } else {
-            console.log("No valid files found to upload.");
-             statusDiv.textContent = 'No valid files detected in drop.';
-        }
+        uploadFile(file_to_upload);
     }
 
-    function dragOverHandler(ev) {
-        // Prevent default behavior (Prevent file from being opened)
+    function dragOverHandler(ev) 
+    {
         ev.preventDefault();
-        // Optional: Visual feedback
-        // dropZone.classList.add('dragover'); // Handled by dragenter now
     }
-
-    function dragEnterHandler(ev) {
-        // Optional visual feedback
-        console.log("File entered drop zone");
-        dropZone.classList.add('dragover');
-        ev.preventDefault(); // Necessary for drop event to fire correctly in some browsers
-    }
-
-     function dragLeaveHandler(ev) {
-        // Optional visual feedback
-        console.log("File left drop zone");
-        // Ensure it only removes class if leaving the drop_zone itself, not child elements
-        if (ev.target === dropZone) {
-             dropZone.classList.remove('dragover');
-        }
+    function dragEnterHandler(ev) 
+    {
+        ev.preventDefault();
     }
 
 
-    // --- Handles the actual upload ---
-    function uploadFile(file) {
-        // V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V
-        // IMPORTANT: Replace this URL with your actual server endpoint!
-        const url = '/your-server-upload-endpoint';
-        // ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^
+    function uploadFile(file) 
+    {
+
+        const url = '/';
 
         const formData = new FormData();
 
-        // 'uploadedFile' is the name the server will look for.
-        // You might need to change this depending on your server-side code.
         formData.append('uploadedFile', file, file.name);
 
-        console.log(`Uploading ${file.name} to ${url}`);
-        statusDiv.textContent = `Uploading ${file.name}...`; // Update status
-
-        fetch(url, {
-            method: 'POST', // Or 'PUT' depending on your server API
+        fetch(url, 
+        {
+            method: 'POST',
             body: formData,
-            // Headers are often not needed for FormData uploads,
-            // the browser sets the 'Content-Type' to 'multipart/form-data' automatically.
         })
-        .then(response => {
-            if (!response.ok) {
-                // Throw an error if the server response is not 2xx
-                 // Try to get error message from body if possible
-                 return response.text().then(text => {
-                     throw new Error(`Server responded with ${response.status}: ${response.statusText}. Body: ${text}`);
-                 });
-            }
-            // Check if the response body is likely JSON or text
-            const contentType = response.headers.get("content-type");
-            if (contentType && contentType.includes("application/json")) {
-                return response.json(); // Parse JSON response
-            } else {
-                return response.text(); // Get response as text
-            }
-        })
-        .then(data => {
-            console.log(`Upload successful for ${file.name}:`, data);
-            // Add user feedback here
-            statusDiv.textContent = `Successfully uploaded ${file.name}! Server response: ${typeof data === 'object' ? JSON.stringify(data) : data}`;
-        })
-        .catch(error => {
-            console.error(`Error during upload for ${file.name}:`, error);
-            // Add user feedback here
-            statusDiv.textContent = `Error uploading ${file.name}: ${error.message}`;
-            dropZone.classList.remove('dragover'); // Ensure highlight is removed on error
-        });
     }
 
 </script>

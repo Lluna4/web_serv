@@ -126,6 +126,16 @@ std::map<std::string, std::string> parse_headers(const std::vector<std::string> 
     return ret;
 }
 
+std::string filename_sanitation(std::string filename)
+{
+    std::filesystem::path p(filename);
+    std::string ret = p.filename().string();
+    if (ret == "" || ret == "." || ret == "..")
+        return "generic_file.txt";
+
+    return ret;
+}
+
 std::string get_filename(std::string data)
 {
     bool started_quote = false;
@@ -139,6 +149,7 @@ std::string get_filename(std::string data)
         else if (started_quote)
             ret.push_back(x);
     }
+    ret = filename_sanitation(ret);
     return ret;
 }
 
@@ -181,15 +192,62 @@ char *search_substring(char *start_data, const char *substring, size_t size)
     return NULL;
 }
 
+bool isNumber(std::string a)
+{
+    if (a.empty())
+        return false;
+    for (int i = 0; i < a.length(); i++)
+    {
+        if (isdigit(a[i]) == 0)
+            return false;
+    }
+    return true;
+}
+
+bool check_ip(const char* ip)
+{
+    std::string buff;
+    std::vector<std::string> tokens;
+    if (strcmp(ip, "localhost") == 0)
+        return true;
+    buff = ip;
+    tokens = split(ip, ".");
+    if (tokens.size() != 4)
+        return false;
+    for (int i = 0; i < tokens.size(); i++)
+    {
+        if (isNumber(tokens[i]) == false)
+            return false;
+        else if (atoi(tokens[i].c_str()) > 255)
+            return false;
+    }
+    return true;
+}
+
+std::vector<std::string> load_whitelist(const std::string &filename)
+{
+    std::vector<std::string> ret;
+    std::ifstream file(filename);
+    std::string line;
+    while (std::getline(file, line))
+    {
+        if (check_ip(line.c_str()))
+            ret.push_back(line);
+    }
+    return ret;
+}
+
 int main()
 {
-    netlib::server_raw server(false, 0);
+    netlib::server_raw server(15000000);
     server.open_server("0.0.0.0", 8080);
-
+    std::vector<std::string> whitelist = load_whitelist("whitelist.txt");
+    server.add_whitelist(whitelist);
+    std::println("{} ips found in whitelist", whitelist.size());
     while (true)
     {
         std::vector<int> readable = server.wait_readable();
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(50));
         for (auto user: readable)
         {
             char * data = server.get_line(user);
@@ -243,6 +301,8 @@ int main()
                                 else if (h.contains("Content-Length:"))
                                 {
                                     file_size = atoi_newline(h["Content-Length:"].c_str());
+                                    if (file_size > 1000000000) //1GB
+                                        server.disconnect_user(user);
                                 }
                                 else if (line_str.contains(boundary) && boundary.contains("----"))
                                 {
@@ -266,8 +326,8 @@ int main()
                                     std::string filename = get_filename(file_.back());
                                     int size_to_get = line_str.size() + line_str2.size() + line_str3.size() + line_str4.size();
                                     size_to_get = file_size - size_to_get;
-                                    int chunks_to_get = (size_to_get / 2048) + 1;
-                                    int last_chunk_size = size_to_get % 2048;
+                                    int chunks_to_get = (size_to_get / 8198) + 1;
+                                    int last_chunk_size = size_to_get % 8198;
                                     while (chunks_to_get > 0)
                                     {
                                         if (chunks_to_get == 1)
@@ -280,8 +340,8 @@ int main()
                                         }
                                         else
                                         {
-                                            char *chunk = server.receive_data_ensured(user, 2048);
-                                            write_file_size(filename, chunk, 2048);
+                                            char *chunk = server.receive_data_ensured(user, 8198);
+                                            write_file_size(filename, chunk, 8198);
                                             free(chunk);
                                         }
                                         chunks_to_get--;
