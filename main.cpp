@@ -5,6 +5,7 @@
 #include <print>
 #include <fstream>
 #include <map>
+#include <filesystem>
 
 int atoi_newline(const char *data)
 {
@@ -337,6 +338,7 @@ int main()
                                             char *end = search_substring(chunk, final_boundary.c_str(), file_size);
                                             write_file(filename, chunk, end);
                                             free(chunk);
+                                            netlib::send_packet(std::make_tuple(std::string("HTTP/1.1 200 OK\r\n")), user);
                                         }
                                         else
                                         {

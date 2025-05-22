@@ -20,6 +20,11 @@
             background-color: #fff;
             transition: background-color 0.3s, border-color 0.3s;
         }
+        #drop_zone.dragover 
+        {
+             border-color: green;
+             background-color: #e0ffe0;
+        }
     </style>
 </head>
 <body>
@@ -29,8 +34,11 @@
   ondrop="dropHandler(event);"
   ondragover="dragOverHandler(event);"
   ondragenter="dragEnterHandler(event);"
+  ondragleave="dragLeaveHandler(event);"
   >
 </div>
+
+<div id="status"></div>
 
 <script>
     const dropZone = document.getElementById('drop_zone');
@@ -67,7 +75,16 @@
     }
     function dragEnterHandler(ev) 
     {
+        document.getElementById('drop_zone').classList.add('dragover');
         ev.preventDefault();
+    }
+
+    function dragLeaveHandler(ev) 
+    {
+        if (ev.target === document.getElementById('drop_zone')) 
+        {
+            document.getElementById('drop_zone').classList.remove('dragover');
+        }
     }
 
 
@@ -79,12 +96,25 @@
         const formData = new FormData();
 
         formData.append('uploadedFile', file, file.name);
-
+        document.getElementById('status').textContent = 'se esta subiendo el archivo';
         fetch(url, 
         {
             method: 'POST',
             body: formData,
         })
+        .then(
+            response =>
+            {
+                if (response.ok)
+                {
+                    document.getElementById('status').textContent = 'se subio el archivo';
+                }
+                else
+                {
+                    document.getElementById('status').textContent = 'Hubo un error subiendo el archivo';
+                }
+            }
+        )
     }
 
 </script>
